@@ -17,22 +17,27 @@
     .card p { color: #718096; font-size: 14px; }
     .delete-btn { position: absolute; top: 8px; right: 8px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 10px; }
     .no-cards { font-size: 16px; color: #718096; }
+    .add-form { margin-bottom: 24px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 600px; }
+    .add-form input { flex: 1; min-width: 140px; padding: 10px 14px; border-radius: 8px; border: 2px solid #124992; font-size: 15px; outline: none; }
+    .add-form button { padding: 10px 20px; border-radius: 8px; border: none; background: #6bce31; color: white; font-size: 15px; cursor: pointer; }
+    .add-form button:hover { background: #58b025; }
   </style>
 </head>
 <body>
-
   <h1>Cards, Names &amp; Things</h1>
-
+  <div class="add-form">
+    <input type="text" id="nameInput" placeholder="Name" />
+    <input type="text" id="thingInput" placeholder="Thing" />
+    <button onclick="addCard()">Add Card</button>
+  </div>
   <div class="search-container">
     <input type="text" id="searchInput" class="search-input" placeholder="Search cards..." />
   </div>
-
   <div class="cards" id="cardContainer">
     <p class="no-cards">Loading...</p>
   </div>
-
   <script>
-    let allCards = []; 
+    let allCards = [];
 
     async function fetchCards() {
       try {
@@ -59,16 +64,30 @@
       `).join('');
     }
 
+    async function addCard() {
+      const name = document.getElementById('nameInput').value.trim();
+      const thing = document.getElementById('thingInput').value.trim();
+      if (!name || !thing) return alert('Please fill in both fields.');
+      await fetch('/api/cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, thing })
+      });
+      document.getElementById('nameInput').value = '';
+      document.getElementById('thingInput').value = '';
+      fetchCards();
+    }
+
     async function deleteCard(id) {
       if (!confirm('Delete this card?')) return;
       await fetch(`/api/cards/${id}`, { method: 'DELETE' });
-      fetchCards(); 
+      fetchCards();
     }
 
     document.getElementById('searchInput').addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase();
-      const filtered = allCards.filter(card => 
-        card.name.toLowerCase().includes(query) || 
+      const filtered = allCards.filter(card =>
+        card.name.toLowerCase().includes(query) ||
         card.thing.toLowerCase().includes(query)
       );
       renderCards(filtered);
