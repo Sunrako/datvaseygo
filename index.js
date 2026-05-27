@@ -1,33 +1,38 @@
 import express from 'express';
 import mysql from 'mysql2/promise';
-import path from 'url';
+import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const connectionString = process.env.MYSQL_URL;
-
 if (!connectionString) {
   console.error("❌ Error: MYSQL_URL environment variable is missing!");
   process.exit(1);
 }
 
-// Initialize production database connection
 const db = await mysql.createConnection(connectionString);
 console.log("🚀 Connected to MySQL database successfully.");
 
+await db.query(`
+  CREATE TABLE IF NOT EXISTS cards (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    thing VARCHAR(255) NOT NULL
+  )
+`);
+console.log("✅ Cards table ready.");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 app.use(express.json());
+app.use(express.static(__dirname));
 
-// Serve index.html dynamically based on local or container path
 app.get('/', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'index.html'));
 });
 
-// ── API ROUTES ───────────────────────────────────────────────────────────────
 app.get('/api/cards', async (req, res) => {
   const [cards] = await db.query('SELECT * FROM cards');
   res.json(cards);
@@ -47,7 +52,6 @@ app.delete('/api/cards/:id', async (req, res) => {
   res.json({ deleted: true });
 });
 
-// Express 5 Global Async Error Handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: err.message });
